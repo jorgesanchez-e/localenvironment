@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -f ${ROOT_DIR}/build/${APPNAME} ]; then
+   rm -f ${ROOT_DIR}/build/${APPNAME}
+fi

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+
+REPORTS_DIR="${ROOT_DIR}/${APPNAME}/reports"
+
+mkdir -p ${REPORTS_DIR}
+
+COVER_FILE="${REPORTS_DIR}/cover.out"
+
+echo "Running unit tests."
+
+# Generate tests report
+go test -timeout 30s -race -v ${ROOT_DIR}/${APPNAME}/... -coverprofile ${COVER_FILE}  || status=$?
+
+# Print code coverage details
+go tool cover -func "${COVER_FILE}"
+
+exit ${status:-0}

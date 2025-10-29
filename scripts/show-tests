@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+
+REPORTS_DIR="${ROOT_DIR}/${APPNAME}/reports"
+
+go tool cover -html="${REPORTS_DIR}/cover.out"

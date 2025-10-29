@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+
+if [ -d "${ROOT_DIR}/build" ]; then
+    echo "creating dir ${ROOT_DIR}/build"
+    mkdir -p ${ROOT_DIR}/build
+fi
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${GOARCH}" ]; then
+    echo "Using default GOARCH"
+else
+    echo "Using GOARCH=${GOARCH}"
+fi
+
+if [ -z "${GOOS}" ]; then
+    echo "Using default GOOS"
+else
+    echo "Using GOOS=${GOOS}"
+fi
+
+export CGO_ENABLED=0
+
+echo "Go building app"
+go build -o ${ROOT_DIR}/build/${APPNAME} cmd/${APPNAME}/main.go
+echo "Successfully built, exiting build script"

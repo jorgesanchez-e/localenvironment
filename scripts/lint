@@ -1,0 +1,25 @@
+#!/usr/bin/env bash 
+set -o errexit
+set -o nounset
+
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCILINT_VERSION}
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+APP_DIR="${ROOT_DIR}/${APPNAME}"
+REPORTS_DIR="${APP_DIR}/reports"
+
+# make reports directory (if it doesn't exist)
+if [ -d "${REPORTS_DIR}" ]; then
+    echo "creating dir ${REPORTS_DIR}"
+    mkdir -p ${REPORTS_DIR}
+fi
+
+
+echo "Running golangci-lint"
+golangci-lint run ${APP_DIR}/...
+echo "no linting problems found"
