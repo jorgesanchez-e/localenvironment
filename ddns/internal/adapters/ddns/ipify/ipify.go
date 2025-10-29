@@ -27,30 +27,31 @@ func New() Client {
 }
 
 func (c Client) GetIP(ctx context.Context, url string) (_ net.IP, err error) {
-	var req *http.Request = nil
+	var req *http.Request
+
 	if req, err = http.NewRequestWithContext(ctx, http.MethodGet, url, nil); err != nil {
-		return
+		return nil, err
 	}
 
 	client := &http.Client{}
-	resp := &http.Response{}
+
+	var resp *http.Response
 	if resp, err = client.Do(req); err != nil {
 		return
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("http code %d", resp.StatusCode)
-		return
+		return nil, fmt.Errorf("unable to get public ip, http code %d from %s", resp.StatusCode, url)
 	}
 
 	var body []byte
 	if body, err = io.ReadAll(resp.Body); err != nil {
-		return
+		return nil, fmt.Errorf("unable to get public ip, body read error: %w from %s", err, url)
 	}
 
 	address := ipifyAddress{}
 	if err = json.Unmarshal(body, &address); err != nil {
-		return
+		return nil, fmt.Errorf("unable to get public ip, body unmarshal error: %w from %s", err, url)
 	}
 
 	validate := validator.New()

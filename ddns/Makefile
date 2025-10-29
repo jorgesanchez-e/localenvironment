@@ -3,9 +3,6 @@ APPNAME ?= ddns
 ROOT_DIR=`git rev-parse --show-toplevel`
 #export ROOT_DIR=${ROOT_DIR}
 
-# used by lint target
-export GOLANGCILINT_VERSION=v1.54.2
-
 build: clean
 	mkdir -p build
 	GOOS=$(GOOS) GOARCH=$(GOARCH) APPNAME=$(APPNAME) ../scripts/build
