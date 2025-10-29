@@ -1,17 +1,9 @@
-APPNAME ?= ddns
+APPNAME ?= common/config-reader
 
-ROOT_DIR=`git rev-parse --show-toplevel`
-#export ROOT_DIR=${ROOT_DIR}
+ROOT_DIR = `git rev-parse --show-toplevel`
 
 # used by lint target
 export GOLANGCILINT_VERSION=v1.54.2
-
-build: clean
-	mkdir -p build
-	GOOS=$(GOOS) GOARCH=$(GOARCH) APPNAME=$(APPNAME) ../scripts/build
-
-run: build
-	$(ROOT_DIR)/build/${APPNAME}
 
 test:
 	APPNAME=$(APPNAME) $(ROOT_DIR)/scripts/unit-test
@@ -25,4 +17,4 @@ lint:
 clean:
 	APPNAME=$(APPNAME) $(ROOT_DIR)/scripts/clean
 
-.PHONY: build run test test-report clean
+.PHONY: test test-report clean
