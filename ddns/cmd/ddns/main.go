@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/ddns"
+	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/publicip"
 )
 
 func main() {
 	ctx := context.Background()
 
-	ddnsClient := ddns.New()
+	ddnsClient := publicip.New()
 	ipv4 := ddnsClient.IPv4(ctx)
 	ipv6 := ddnsClient.IPv6(ctx)
 

@@ -1,4 +1,4 @@
-package ddns
+package publicip
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/h2non/gock"
-	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/ddns/ipify"
+	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/publicip/ipify"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

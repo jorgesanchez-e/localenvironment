@@ -1,10 +1,10 @@
-package ddns
+package publicip
 
 import (
 	"context"
 	"net"
 
-	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/ddns/ipify"
+	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/publicip/ipify"
 	log "github.com/sirupsen/logrus"
 )
 

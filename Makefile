@@ -2,7 +2,7 @@
 export REPORTS_DIR=./reports
 export ROOT_DIR=$(git rev-parse --show-toplevel)
 
-COMPONENTS=ddns
+COMPONENTS=ddns common/config-reader
 
 all: build
 
