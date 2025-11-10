@@ -1,3 +1,5 @@
 *.code-workspace
 build/
 reports/
+# Added by goreleaser init:
+dist/

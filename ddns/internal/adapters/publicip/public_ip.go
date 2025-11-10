@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/jorgesanchez-e/localenvironment/ddns/internal/adapters/publicip/ipify"
-	log "github.com/sirupsen/logrus"
 )
 
 type Client struct {
@@ -18,22 +17,20 @@ func New() *Client {
 	}
 }
 
-func (c Client) IPv4(ctx context.Context) net.IP {
+func (c Client) IPv4(ctx context.Context) (net.IP, error) {
 	ip, err := c.ipifyClient.GetIP(ctx, ipify.IPv4URL)
 	if err != nil {
-		log.Error(err)
-		return nil
+		return nil, err
 	}
 
-	return ip
+	return ip, nil
 }
 
-func (c Client) IPv6(ctx context.Context) net.IP {
+func (c Client) IPv6(ctx context.Context) (net.IP, error) {
 	ip, err := c.ipifyClient.GetIP(ctx, ipify.IPv6URL)
 	if err != nil {
-		log.Error(err)
-		return nil
+		return nil, err
 	}
 
-	return ip
+	return ip, err
 }
