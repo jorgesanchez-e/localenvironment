@@ -1,0 +1,94 @@
+name: Releasing a project
+run-name: Releasing 🚀
+on:
+  push:
+    # Add new entry for every project into the repo.
+    tags:
+      - 'ddns/v\d+\.\d+\.\d+'
+jobs:
+  setup-variables:
+    runs-on: ubuntu-latest
+    outputs:
+      app_name: ${{ steps.set-variables.outputs.app_name }}
+      app_version: ${{ steps.set-variables.outputs.app_version }}
+    steps:
+      - name: Setting variables to execute the build.
+        id: set-variables
+        run: |
+          echo "app_name=$( echo $GITHUB_REF | cut -d '/' -f 3 )" >> $GITHUB_OUTPUT
+          echo "app_version=$( echo $GITHUB_REF | cut -d '/' -f 4 )" >> $GITHUB_OUTPUT
+
+  build:
+    needs: setup-variables
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, freebsd]
+        goarch: [amd64, arm64]    
+    steps:
+      - uses: actions/checkout@v4 # Checks out your repository under $GITHUB_WORKSPACE
+      - name: Set up Go
+        uses: actions/setup-go@v5 # Uses the setup-go action
+        with:
+          go-version: '1.25' 
+          cache: true
+      - name: building the packages.
+        run: | 
+          cd $GITHUB_WORKSPACE
+          echo "current value for goos: ${{ matrix.goos }}"
+          echo "current value for goarch: ${{ matrix.goarch }}"
+          export GOOS=${{ matrix.goos }}
+          export GOARCH=${{ matrix.goarch }}
+          export APPVERSION=${{ needs.setup-variables.outputs.app_version }}
+          make -C ${{ needs.setup-variables.outputs.app_name }}/
+      - name: Changing permissions.
+        run: | 
+          chmod 755 build/*
+      - name: Uploading artifact.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.setup-variables.outputs.app_name }}-${{ needs.setup-variables.outputs.app_version }}.${{ matrix.goos }}-${{ matrix.goarch }}
+          path: build/${{ needs.setup-variables.outputs.app_name }}-${{ needs.setup-variables.outputs.app_version }}.${{ matrix.goos }}-${{ matrix.goarch }}
+
+  create-release:
+    needs: [ build, setup-variables ]
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.set-upload-url.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ needs.setup-variables.outputs.app_name }}/${{ needs.setup-variables.outputs.app_version }}
+          release_name: ${{ needs.setup-variables.outputs.app_name }}/${{ needs.setup-variables.outputs.app_version }}
+          draft: false
+          prerelease: false
+      - name: Set upload url
+        id: set-upload-url
+        run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
+
+  upload-assets:
+    needs: [ create-release, setup-variables ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, freebsd]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: "${{ needs.setup-variables.outputs.app_name }}-${{ needs.setup-variables.outputs.app_version }}.${{ matrix.goos }}-${{ matrix.goarch }}"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./${{ needs.setup-variables.outputs.app_name }}-${{ needs.setup-variables.outputs.app_version }}.${{ matrix.goos }}-${{ matrix.goarch }}
+          asset_name: ${{ needs.setup-variables.outputs.app_name }}-${{ needs.setup-variables.outputs.app_version }}.${{ matrix.goos }}-${{ matrix.goarch }}
+          asset_content_type: octet-stream
