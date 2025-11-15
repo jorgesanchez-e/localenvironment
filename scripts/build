@@ -10,6 +10,11 @@ if [ -d "${ROOT_DIR}/build" ]; then
     mkdir -p ${ROOT_DIR}/build
 fi
 
+if [ -z "${APPVERSION}" ]; then
+    echo "APPVERSION is not set, setting it to unkwnown"
+    export APPVERSION="UNKNOWN"
+fi
+
 if [ -z "${APPNAME}" ]; then
     echo "APPNAME must be set"
     exit 1
@@ -30,5 +35,5 @@ fi
 export CGO_ENABLED=0
 
 echo "Go building app"
-go build -o ${ROOT_DIR}/build/${APPNAME} cmd/${APPNAME}/main.go
+go build -o ${ROOT_DIR}/build/${APPNAME}-${APPVERSION}.${GOOS}-${GOARCH} cmd/${APPNAME}/main.go
 echo "Successfully built, exiting build script"
