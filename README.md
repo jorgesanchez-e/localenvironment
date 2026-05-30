@@ -142,6 +142,14 @@ The root [`go.work`](go.work) file ties the modules together so you can work on 
 go work sync   # optional: refresh workspace dependencies
 ```
 
-## Status
+## Continuous integration
 
-The `ddns` and `acme` programs are early-stage; extend `cmd/` and internal packages as you implement DDNS updates and ACME certificate workflows.
+GitHub Actions runs on every **pull request** and on pushes to `main` / `master`. The workflow is defined in [`.github/workflows/test.yml`](.github/workflows/test.yml) and runs two jobs on Ubuntu in parallel:
+
+| Job | Command | Description |
+|-----|---------|-------------|
+| **Unit tests** | `make test` | Runs tests for all apps (with race detector and coverage). |
+| **Lint** | `make lint` | Runs [golangci-lint](https://golangci-lint.run/) for all apps (`GOLANGCILINT_VERSION` is set in the workflow and in each app `Makefile`). |
+
+
+
