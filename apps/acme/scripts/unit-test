@@ -1,0 +1,27 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${ROOT_DIR}" ]; then
+    echo "ROOT_DIR must be set"
+    exit 1
+fi
+
+REPORTS_DIR="${ROOT_DIR}/apps/${APPNAME}/reports"
+
+mkdir -p "${REPORTS_DIR}"
+
+COVER_FILE="${REPORTS_DIR}/cover.out"
+
+echo "Running unit tests."
+
+status=0
+go test -timeout 30s -race -v "${ROOT_DIR}/apps/${APPNAME}/..." -coverprofile "${COVER_FILE}" || status=$?
+
+go tool cover -func "${COVER_FILE}"
+
+exit "${status}"

@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${ROOT_DIR}" ]; then
+    echo "ROOT_DIR must be set"
+    exit 1
+fi
+
+REPORTS_DIR="${ROOT_DIR}/apps/${APPNAME}/reports"
+
+if [ ! -f "${REPORTS_DIR}/cover.out" ]; then
+    echo "cover.out file not found in ${REPORTS_DIR}"
+    exit 1
+fi
+
+go tool cover -html="${REPORTS_DIR}/cover.out"

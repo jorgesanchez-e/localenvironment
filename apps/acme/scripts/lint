@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${GOLANGCILINT_VERSION}" ]; then
+    echo "GOLANGCILINT_VERSION must be set"
+    exit 1
+fi
+
+curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$(go env GOPATH)/bin" "${GOLANGCILINT_VERSION}"
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${ROOT_DIR}" ]; then
+    echo "ROOT_DIR must be set"
+    exit 1
+fi
+
+APP_DIR="${ROOT_DIR}/apps/${APPNAME}"
+REPORTS_DIR="${APP_DIR}/reports"
+
+if [ ! -d "${REPORTS_DIR}" ]; then
+    echo "creating dir ${REPORTS_DIR}"
+    mkdir -p "${REPORTS_DIR}"
+fi
+
+echo "Running golangci-lint"
+golangci-lint run "${APP_DIR}/..."
+echo "no linting problems found"

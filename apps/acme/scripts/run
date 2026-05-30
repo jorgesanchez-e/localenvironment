@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${ROOT_DIR}" ]; then
+    echo "ROOT_DIR must be set"
+    exit 1
+fi
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${APPVERSION}" ]; then
+    APPVERSION="UNKNOWN"
+fi
+
+if [ -z "${GOARCH}" ]; then
+    GOARCH="$(go env GOARCH)"
+fi
+
+if [ -z "${GOOS}" ]; then
+    GOOS="$(go env GOOS)"
+fi
+
+bin="${ROOT_DIR}/build/${APPNAME}-${GOOS}-${GOARCH}-${APPVERSION}.bin"
+if [ ! -f "${bin}" ]; then
+    echo "binary not found: ${bin}" >&2
+    exit 1
+fi
+
+exec "${bin}"
