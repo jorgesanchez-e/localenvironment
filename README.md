@@ -15,7 +15,7 @@ Each app lives under `apps/<name>/` with its own `go.mod`, Makefile, and `script
 
 ## Prerequisites
 
-- [Go](https://go.dev/) (see `go.work` for the toolchain version)
+- [Go](https://go.dev/) (see `go` in `apps/ddns/go.mod` or `apps/acme/go.mod`)
 - [Git](https://git-scm.com/) (recommended; used to resolve the repository root)
 - **make** — GNU Make or BSD Make (macOS, Linux, FreeBSD)
 - **curl** — only required for `make lint` (installs [golangci-lint](https://golangci-lint.run/))
@@ -27,7 +27,6 @@ Build and test scripts use POSIX `/bin/sh` and are intended to work on **macOS**
 ```
 .
 ├── Makefile          # Build all apps from the repo root
-├── go.work           # Go workspace linking apps/ddns and apps/acme
 ├── build/            # Compiled binaries (created by `make build`)
 └── apps/
     ├── ddns/
@@ -134,22 +133,27 @@ This executes the matching binary from `build/` (same naming rules as above).
 
 Test coverage files are stored under `apps/<name>/reports/`.
 
-## Go workspace
+## Go workspace (optional, local)
 
-The root [`go.work`](go.work) file ties the modules together so you can work on both apps in one clone:
+`go.work` is listed in [`.gitignore`](.gitignore) and is not required for `make build` or `make test`. To use a workspace locally, create it once at the repo root:
 
 ```bash
+go work init ./apps/ddns ./apps/acme
 go work sync   # optional: refresh workspace dependencies
 ```
 
+Keep the `go` version in each app’s `go.mod` in sync; CI reads the toolchain from [`apps/ddns/go.mod`](apps/ddns/go.mod).
+
 ## Continuous integration
 
-GitHub Actions runs on every **pull request** and on pushes to `main` / `master`. The workflow is defined in [`.github/workflows/test.yml`](.github/workflows/test.yml) and runs two jobs on Ubuntu in parallel:
+GitHub Actions runs on every **pull request** and on pushes to `main` / `master`. The workflow is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) and runs two jobs on Ubuntu in parallel:
 
 | Job | Command | Description |
 |-----|---------|-------------|
 | **Unit tests** | `make test` | Runs tests for all apps (with race detector and coverage). |
 | **Lint** | `make lint` | Runs [golangci-lint](https://golangci-lint.run/) for all apps (`GOLANGCILINT_VERSION` is set in the workflow and in each app `Makefile`). |
+
+Go is installed via `actions/setup-go` using the version from `apps/ddns/go.mod` (not `go.work`, which is not in the repository).
 
 
 
