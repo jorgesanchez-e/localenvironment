@@ -5,8 +5,9 @@ ROOT_DIR ?= $(shell git rev-parse --show-toplevel 2>/dev/null)
 ifeq ($(ROOT_DIR),)
 ROOT_DIR := $(.CURDIR)/../..
 endif
-GOOS ?=
-GOARCH ?=
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+REPO ?= jorgesanchez-e/localenvironment
 
 # used by `test` target
 export REPORTS_DIR=./reports
@@ -31,5 +32,14 @@ lint:
 
 clean:
 	ROOT_DIR=$(ROOT_DIR) APPNAME=$(APPNAME) ./scripts/clean
+
+docker-build:
+	ROOT_DIR=$(ROOT_DIR) \
+		GOOS=$(GOOS) \
+		GOARCH=$(GOARCH) \
+		APPVERSION=$(APPVERSION) \
+		APPNAME=$(APPNAME) \
+		REPO=$(REPO) \
+		./scripts/docker-build
 
 .PHONY: build run test test-report lint clean
