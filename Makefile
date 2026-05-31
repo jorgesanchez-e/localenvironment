@@ -10,6 +10,7 @@ GOARCH ?=
 APPVERSION ?= 0.1
 
 APPS := $(notdir $(patsubst %/Makefile,%,$(wildcard apps/*/Makefile)))
+TEST_LINT_DIRS := config $(addprefix apps/,$(APPS))
 
 .PHONY: all build clean test lint test-report $(APPS)
 
@@ -32,19 +33,19 @@ clean:
 	done
 
 test:
-	@for app in $(APPS); do \
-		echo "==> Testing $$app"; \
-		$(MAKE) -C apps/$$app test ROOT_DIR=$(ROOT_DIR) || exit 1; \
+	@for dir in $(TEST_LINT_DIRS); do \
+		echo "==> Testing $$dir"; \
+		$(MAKE) -C $$dir test ROOT_DIR=$(ROOT_DIR) || exit 1; \
 	done
 
 lint:
-	@for app in $(APPS); do \
-		echo "==> Linting $$app"; \
-		$(MAKE) -C apps/$$app lint ROOT_DIR=$(ROOT_DIR) || exit 1; \
+	@for dir in $(TEST_LINT_DIRS); do \
+		echo "==> Linting $$dir"; \
+		$(MAKE) -C $$dir lint ROOT_DIR=$(ROOT_DIR) || exit 1; \
 	done
 
 test-report:
-	@for app in $(APPS); do \
-		echo "==> Test report $$app"; \
-		$(MAKE) -C apps/$$app test-report ROOT_DIR=$(ROOT_DIR) || exit 1; \
+	@for dir in $(TEST_LINT_DIRS); do \
+		echo "==> Test report $$dir"; \
+		$(MAKE) -C $$dir  test-report ROOT_DIR=$(ROOT_DIR) || exit 1; \
 	done

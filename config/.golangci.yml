@@ -1,0 +1,58 @@
+# golangci-lint v2.x (see Makefile GOLANGCILINT_VERSION)
+version: "2"
+
+run:
+  go: "1.25"
+  timeout: 5m
+  tests: false
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - errname
+    - errorlint
+    - nilerr
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - dogsled
+    - goconst
+    - gocritic
+    - gocyclo
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
+    - gosec
+  disable:
+    - dupl
+    - exhaustruct
+    - gochecknoglobals
+    - gochecknoinits
+    - lll
+    - wsl
+  settings:
+    gocyclo:
+      min-complexity: 15
+    revive:
+      severity: warning
+    gosec:
+      excludes:
+        - G104
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    paths:
+      - _test\.go$
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
