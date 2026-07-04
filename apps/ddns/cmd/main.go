@@ -7,22 +7,16 @@ import (
 	"github.com/jorgesanchez-e/localenvironment/config"
 )
 
-type ddns struct {
-	Storage string `yaml:"storage"`
-}
-
 func main() {
-	var err error
-
 	cnf, err := config.New()
 	if err != nil {
-		log.Fatalf("Failed to create config: %v", err)
+		log.Fatalf("failed to read config: %v", err)
 	}
 
-	ddns := &ddns{}
-	err = cnf.Decode("ddns", ddns)
+	simpleDDNS, err := cnf.GetSimpleDDNSConfig()
 	if err != nil {
-		log.Fatalf("Failed to decode config: %v", err)
+		log.Fatalf("Failed to get simple DDNS config: %v", err)
 	}
-	fmt.Println(ddns)
+
+	fmt.Println(simpleDDNS)
 }
