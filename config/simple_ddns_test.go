@@ -1,13 +1,14 @@
 package config
 
 import (
-	"strings"
+	"errors"
 	"testing"
 
-	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
-const validSimpleDDNSYAML = `
+const (
+	validSimpleDDNSYAML = `
 ddns:
   log-level: "debug"
   check-every-seconds: 300
@@ -18,170 +19,141 @@ ddns:
       access-key: "1234567890"
       secret-key: "1234567890"
       zones:
-        - record-name: vpn.example.net.
-          record-type: A
-          record-ttl: 3600
-          record-value: 127.0.0.1
-        - record-name: localhost.example.io.
-          record-type: A
-          record-ttl: 3600
-          record-value: 127.0.0.1
-        - record-name: test-a.example.dev.
-          record-type: AAAA
-          record-ttl: 3600
-          record-value: ::1
+        - id: "Z0123456789ABCDEF"
+          name: "example.net zone."
+          records:
+          - fqdn: "vpn.example.net."
+            record-type: A
+            record-ttl: 3600
+          - fqdn: "localhost.example.net."
+            record-type: A
+            record-ttl: 3600
+          - fqdn: "test-a.example.net."
+            record-type: AAAA
+            record-ttl: 3600
+        - id: "Z0123456789ABCDEG"
+          name: "example.org zone."
+          records:
+          - fqdn: "vpn.example.org."
+            record-type: A
+            record-ttl: 3600
+          - fqdn: "localhost.example.org."
+            record-type: A
+            record-ttl: 3600
 `
 
-func testConfigFromYAML(t *testing.T, raw string) *config {
-	t.Helper()
-
-	vp := viper.New()
-	vp.SetConfigType("yaml")
-	if err := vp.ReadConfig(strings.NewReader(raw)); err != nil {
-		t.Fatalf("ReadConfig() error = %v", err)
-	}
-
-	return &config{vp: vp}
-}
+	invalidConfigSimpleDDNSYAML = `
+ddns:
+  log-level: "debug"
+  check-every-seconds: 300
+  process-timeout-seconds: 20
+  aws:
+    - region: "us-east-1"
+      zones:
+        - id: "Z0123456789ABCDEF"
+          records:
+          - fqdn: "vpn.example.net."
+            record-type: A
+            record-ttl: 3600
+`
+)
 
 func TestGetSimpleDDNSConfig(t *testing.T) {
-	t.Parallel()
-
-	c := testConfigFromYAML(t, validSimpleDDNSYAML)
-
-	got, err := c.GetSimpleDDNSConfig()
-	if err != nil {
-		t.Fatalf("GetSimpleDDNSConfig() error = %v", err)
-	}
-
-	if got.DDNS.LogLevel != "debug" {
-		t.Errorf("LogLevel = %q, want %q", got.DDNS.LogLevel, "debug")
-	}
-	if got.DDNS.CheckEverySeconds != 300 {
-		t.Errorf("CheckEverySeconds = %d, want %d", got.DDNS.CheckEverySeconds, 300)
-	}
-	if got.DDNS.UpdateTimeoutSeconds != 20 {
-		t.Errorf("UpdateTimeoutSeconds = %d, want %d", got.DDNS.UpdateTimeoutSeconds, 20)
-	}
-
-	if len(got.DDNS.AWS) != 1 {
-		t.Fatalf("AWS len = %d, want %d", len(got.DDNS.AWS), 1)
-	}
-
-	aws := got.DDNS.AWS[0]
-	if aws.AccountName != "example" {
-		t.Errorf("AccountName = %q, want %q", aws.AccountName, "example")
-	}
-	if aws.Region != "us-east-1" {
-		t.Errorf("Region = %q, want %q", aws.Region, "us-east-1")
-	}
-	if aws.AccessKey != "1234567890" {
-		t.Errorf("AccessKey = %q, want %q", aws.AccessKey, "1234567890")
-	}
-	if aws.SecretKey != "1234567890" {
-		t.Errorf("SecretKey = %q, want %q", aws.SecretKey, "1234567890")
-	}
-
-	if len(aws.Zones) != 3 {
-		t.Fatalf("Zones len = %d, want %d", len(aws.Zones), 3)
-	}
-
-	wantZones := []zoneConfig{
+	testCases := []struct {
+		name           string
+		yaml           string
+		expectedConfig *SimpleDDNS
+		expectedError  error
+	}{
 		{
-			RecordName:  "vpn.example.net.",
-			RecordType:  "A",
-			RecordTTL:   3600,
-			RecordValue: "127.0.0.1",
+			name: "valid simple DDNS configuration",
+			yaml: validSimpleDDNSYAML,
+			expectedConfig: &SimpleDDNS{
+				DDNS: DDNSConfig{
+					LogLevel:             "debug",
+					CheckEverySeconds:    300,
+					UpdateTimeoutSeconds: 20,
+					AWS: []AWSConfig{
+						{
+							AccountName: "example",
+							Region:      "us-east-1",
+							AccessKey:   "1234567890",
+							SecretKey:   "1234567890",
+							Zones: []ZoneConfig{
+								{
+									ID:   "Z0123456789ABCDEF",
+									Name: "example.net zone.",
+									Records: []RecordConfig{
+										{
+											FQDN:       "vpn.example.net.",
+											RecordType: "A",
+											RecordTTL:  3600,
+										},
+										{
+											FQDN:       "localhost.example.net.",
+											RecordType: "A",
+											RecordTTL:  3600,
+										},
+										{
+											FQDN:       "test-a.example.net.",
+											RecordType: "AAAA",
+											RecordTTL:  3600,
+										},
+									},
+								},
+								{
+									ID:   "Z0123456789ABCDEG",
+									Name: "example.org zone.",
+									Records: []RecordConfig{
+										{
+											FQDN:       "vpn.example.org.",
+											RecordType: "A",
+											RecordTTL:  3600,
+										},
+										{
+											FQDN:       "localhost.example.org.",
+											RecordType: "A",
+											RecordTTL:  3600,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		{
-			RecordName:  "localhost.example.io.",
-			RecordType:  "A",
-			RecordTTL:   3600,
-			RecordValue: "127.0.0.1",
-		},
-		{
-			RecordName:  "test-a.example.dev.",
-			RecordType:  "AAAA",
-			RecordTTL:   3600,
-			RecordValue: "::1",
+			name:           "invalid config simple DDNS configuration",
+			yaml:           invalidConfigSimpleDDNSYAML,
+			expectedConfig: nil,
+			expectedError:  errors.New("invalid config: Key: 'SimpleDDNS.DDNS.AWS[0].AccountName' Error:Field validation for 'AccountName' failed on the 'required' tag"),
 		},
 	}
 
-	for i, want := range wantZones {
-		if aws.Zones[i] != want {
-			t.Errorf("Zones[%d] = %+v, want %+v", i, aws.Zones[i], want)
-		}
-	}
-}
+	for _, testCase := range testCases {
+		name := testCase.name
+		expectedError := testCase.expectedError
+		expectedConfig := testCase.expectedConfig
+		yaml := testCase.yaml
 
-func TestGetSimpleDDNSConfig_MissingAccountName(t *testing.T) {
-	t.Parallel()
+		t.Run(name, func(t *testing.T) {
+			withConfigPaths(t, []string{"."})
 
-	raw := strings.Replace(
-		validSimpleDDNSYAML,
-		`account-name: "example"`,
-		`account-name: ""`,
-		1,
-	)
+			dir := t.TempDir()
+			writeConfigFile(t, dir, yaml)
 
-	c := testConfigFromYAML(t, raw)
+			t.Chdir(dir)
 
-	_, err := c.GetSimpleDDNSConfig()
-	if err == nil {
-		t.Fatal("GetSimpleDDNSConfig() error = nil, want validation error")
-	}
-}
+			cnf, _ := New()
+			ddnsConf, err := cnf.GetSimpleDDNSConfig()
 
-func TestGetSimpleDDNSConfig_InvalidIPv4ForARecord(t *testing.T) {
-	t.Parallel()
-
-	raw := strings.Replace(
-		validSimpleDDNSYAML,
-		"record-value: 127.0.0.1",
-		"record-value: ::1",
-		1,
-	)
-
-	c := testConfigFromYAML(t, raw)
-
-	_, err := c.GetSimpleDDNSConfig()
-	if err == nil {
-		t.Fatal("GetSimpleDDNSConfig() error = nil, want validation error")
-	}
-}
-
-func TestGetSimpleDDNSConfig_InvalidIPv6ForAAAARecord(t *testing.T) {
-	t.Parallel()
-
-	raw := strings.Replace(
-		validSimpleDDNSYAML,
-		"record-value: ::1",
-		"record-value: 127.0.0.1",
-		1,
-	)
-
-	c := testConfigFromYAML(t, raw)
-
-	_, err := c.GetSimpleDDNSConfig()
-	if err == nil {
-		t.Fatal("GetSimpleDDNSConfig() error = nil, want validation error")
-	}
-}
-
-func TestGetSimpleDDNSConfig_InvalidIPAddress(t *testing.T) {
-	t.Parallel()
-
-	raw := strings.Replace(
-		validSimpleDDNSYAML,
-		"record-value: 127.0.0.1",
-		"record-value: not-an-ip",
-		1,
-	)
-
-	c := testConfigFromYAML(t, raw)
-
-	_, err := c.GetSimpleDDNSConfig()
-	if err == nil {
-		t.Fatal("GetSimpleDDNSConfig() error = nil, want validation error")
+			assert.Equal(t, expectedConfig, ddnsConf)
+			if expectedError != nil {
+				assert.EqualError(t, err, expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }

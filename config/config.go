@@ -16,12 +16,12 @@ var paths = []string{
 	".",
 }
 
-type config struct {
+type conf struct {
 	vp *viper.Viper
 }
 
-func New() (*config, error) {
-	cnf := new(config)
+func New() (*conf, error) {
+	cnf := new(conf)
 	cnf.vp = viper.New()
 
 	for _, path := range paths {
