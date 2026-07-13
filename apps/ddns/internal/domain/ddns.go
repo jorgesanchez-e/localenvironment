@@ -14,6 +14,6 @@ type Record struct {
 }
 
 type DDNS interface {
-	GetRecords(ctx context.Context, fqdns []string) ([]Record, error)
+	GetRecords(ctx context.Context) ([]Record, error)
 	UpdateRecords(ctx context.Context, records []Record) error
 }
