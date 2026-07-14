@@ -33,6 +33,8 @@ type Record struct {
 	RecordTTL  int
 }
 
+type records []Record
+
 type Updater struct {
 	drivers []awsClient
 }
@@ -93,12 +95,12 @@ func (r *Updater) GetRecords(ctx context.Context, domains []string) ([]Record, e
 	return records, nil
 }
 
-func (r *Updater) UpdateRecords(ctx context.Context, records []Record) error {
+func (r *Updater) UpdateRecords(ctx context.Context, recs []Record) error {
 	ch := make(chan struct{})
 	wg := sync.WaitGroup{}
 
 	for _, driver := range r.drivers {
-		for _, request := range driver.buildRequests(records) {
+		for _, request := range driver.buildRequests(records(recs).check()) {
 			wg.Add(1)
 			go driver.do(ctx, &wg, ch, request)
 		}
@@ -140,6 +142,11 @@ func (ac awsClient) buildRequests(inputRecords []Record) []*route53.ChangeResour
 				batch.Changes = append(batch.Changes, changes...)
 			}
 		}
+
+		if len(batch.Changes) == 0 {
+			continue
+		}
+
 		requests = append(requests, &route53.ChangeResourceRecordSetsInput{
 			HostedZoneId: aws.String(zone.id),
 			ChangeBatch:  batch,
@@ -162,6 +169,17 @@ func (ac awsClient) do(ctx context.Context, wg *sync.WaitGroup, ch <-chan struct
 	case <-ctx.Done():
 		return
 	}
+}
+
+func (r records) check() []Record {
+	checked := make([]Record, 0, len(r))
+
+	for _, record := range r {
+		if record.IP != "" && record.FQDN != "" && (record.RecordType == "A" || record.RecordType == "AAA") {
+			checked = append(checked, record)
+		}
+	}
+	return checked
 }
 
 func translateRecord(record *types.ResourceRecordSet) *Record {
