@@ -18,8 +18,8 @@ var (
 )
 
 type DDNS struct {
-	checkInSeconds       time.Duration
-	updateTimeoutSeconds time.Duration
+	elapseTimeToCheck time.Duration
+	updateTimeout     time.Duration
 	domain.IPGetter
 	domain.DDNS
 }
@@ -30,14 +30,14 @@ func NewDDNS(awsConfig *config.SimpleDDNS) (*DDNS, error) {
 		return nil, err
 	}
 
-	checkInSeconds := time.Duration(awsConfig.DDNS.CheckEverySeconds) * time.Second
-	updateTimeoutSeconds := time.Duration(awsConfig.DDNS.UpdateTimeoutSeconds) * time.Second
+	elapseTimeToCheck := time.Duration(awsConfig.DDNS.CheckEverySeconds) * time.Second
+	updateTimeout := time.Duration(awsConfig.DDNS.UpdateTimeoutSeconds) * time.Second
 
-	if checkInSeconds <= 0 {
+	if elapseTimeToCheck <= 0 {
 		return nil, ErrCheckInSecondsMustBeGreaterThanZero
 	}
 
-	if checkInSeconds < updateTimeoutSeconds {
+	if elapseTimeToCheck < updateTimeout {
 		return nil, ErrCheckInSecondsMustBeLessThanUpdateTimeoutSeconds
 	}
 
@@ -52,7 +52,7 @@ func NewDDNS(awsConfig *config.SimpleDDNS) (*DDNS, error) {
 func (ddns *DDNS) Run(ctx context.Context) {
 loop:
 	for {
-		ctxIteration, cancel := context.WithTimeout(ctx, ddns.checkInSeconds-1*time.Second) // -1 second to avoid timeout before the checkInSeconds
+		ctxIteration, cancel := context.WithTimeout(ctx, ddns.elapseTimeToCheck-1*time.Second) // -1 second to avoid timeout before the elapseTimeToCheck
 		go ddns.do(ctxIteration)
 
 		select {

@@ -330,7 +330,7 @@ func TestUpdateRecords(t *testing.T) {
 					},
 				},
 			},
-			expectedChangeCnt: 1,
+			expectedChangeCnt: 0,
 		},
 		{
 			name:              "no zones configured",

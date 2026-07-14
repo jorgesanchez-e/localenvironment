@@ -46,7 +46,6 @@ func setLog() {
 
 	// Only log the warning severity or above.
 	log.SetLevel(log.InfoLevel)
-
 }
 
 func createApp() *app.DDNS {

@@ -183,14 +183,14 @@ func (r records) check() []Record {
 }
 
 func translateRecord(record *types.ResourceRecordSet) *Record {
-	if record == nil || (*record).Name == nil || (*record).TTL == nil || len((*record).ResourceRecords) == 0 {
+	if record == nil || record.Name == nil || record.TTL == nil || len(record.ResourceRecords) == 0 {
 		return nil
 	}
 
 	return &Record{
 		FQDN:       *record.Name,
 		IP:         *record.ResourceRecords[0].Value,
-		RecordType: string((*record).Type),
+		RecordType: string(record.Type),
 		RecordTTL:  int(*record.TTL),
 	}
 }
