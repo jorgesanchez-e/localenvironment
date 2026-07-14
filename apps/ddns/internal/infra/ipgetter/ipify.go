@@ -51,7 +51,7 @@ func (i *ipify) publicIP(ctx context.Context, iType ipType) (_ string, err error
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

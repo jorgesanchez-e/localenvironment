@@ -41,7 +41,9 @@ type RecordConfig struct {
 
 func (c *conf) GetSimpleDDNSConfig() (*SimpleDDNS, error) {
 	var simpleDDNS SimpleDDNS
-	c.vp.UnmarshalKey(ddnsConfigName, &simpleDDNS.DDNS)
+	if err := c.vp.UnmarshalKey(ddnsConfigName, &simpleDDNS.DDNS); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
 
 	validate := validator.New()
 	if err := validate.Struct(simpleDDNS); err != nil {
