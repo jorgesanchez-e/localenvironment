@@ -1,0 +1,20 @@
+services:
+  ddns:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APPNAME: ddns
+        APPVERSION: local
+    image: ddns:local
+    container_name: ddns
+    restart: unless-stopped
+    configs:
+      - source: ddns_config
+        target: /etc/localenvironment/config.yaml
+
+configs:
+  ddns_config:
+    # Real configuration (contains AWS credentials) — kept out of git.
+    # Copy config.example.yaml to config.yaml and fill in your values.
+    file: ./config.yaml

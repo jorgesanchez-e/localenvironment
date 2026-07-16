@@ -1,5 +1,6 @@
-# Etapa de compilación
+# Build stage
 FROM golang:1.26-alpine AS builder
+RUN apk add --no-cache ca-certificates
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -15,8 +16,9 @@ RUN CGO_ENABLED=0 \
     GOARCH="${GOARCH:-$TARGETARCH}" \
     go build -o ${APPNAME} ./cmd/main.go
 
-# Etapa final (mínima)
+# Final stage (minimal)
 FROM scratch
 ARG APPNAME
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /app/${APPNAME} /${APPNAME}
 ENTRYPOINT ["/ddns"]

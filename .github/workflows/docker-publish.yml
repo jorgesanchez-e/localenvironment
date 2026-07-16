@@ -2,164 +2,116 @@ name: Build and push images
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'apps/acme/**'
-      - 'apps/ddns/**'
-      - 'config/**'
-      - '.github/workflows/docker-publish.yml'
+    tags:
+      - 'ddns-v*'
+      - 'acme-v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a construir (ej. ddns-v0.1 o acme-v0.2)'
+        required: true
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
   build-docker:
-    name: Docker (${{ matrix.app }})
+    name: Docker
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      pull-requests: read
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [acme, ddns]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect changed paths
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            acme:
-              - 'apps/acme/**'
-            ddns:
-              - 'apps/ddns/**'
-              - 'config/**'
-            workflow:
-              - '.github/workflows/docker-publish.yml'
-
-      - name: Decide if this app should build
-        id: should
+      - name: Parse tag
+        id: parse
         run: |
-          APP="${{ matrix.app }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.filter.outputs.workflow }}" = "true" ]; then
-            echo "build=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "$APP" = "acme" ] && [ "${{ steps.filter.outputs.acme }}" = "true" ]; then
-            echo "build=true" >> "$GITHUB_OUTPUT"
-          elif [ "$APP" = "ddns" ] && [ "${{ steps.filter.outputs.ddns }}" = "true" ]; then
-            echo "build=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
           else
-            echo "build=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping ${APP}: no relevant path changes"
+            TAG="${GITHUB_REF_NAME}"
           fi
+          APP="${TAG%%-*}"       # ddns-v0.1 -> ddns
+          VERSION="${TAG#*-}"    # ddns-v0.1 -> v0.1
+          if [ "$APP" != "ddns" ] && [ "$APP" != "acme" ]; then
+            echo "Tag '$TAG' no corresponde a una app valida (ddns|acme)"; exit 1
+          fi
+          if [ "$VERSION" = "$TAG" ] || [ -z "$VERSION" ]; then
+            echo "Tag '$TAG' no tiene el formato <app>-v<version>"; exit 1
+          fi
+          echo "app=$APP" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
-        if: steps.should.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags)
-        if: steps.should.outputs.build == 'true'
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.app }}
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=main,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-
       - name: Set up QEMU
-        if: steps.should.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.should.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push multi-arch image
-        if: steps.should.outputs.build == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: apps/${{ matrix.app }}
-          file: apps/${{ matrix.app }}/Dockerfile
+          context: apps/${{ steps.parse.outputs.app }}
+          file: apps/${{ steps.parse.outputs.app }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/${{ steps.parse.outputs.app }}:${{ steps.parse.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/${{ steps.parse.outputs.app }}:latest
           build-args: |
-            APPNAME=${{ matrix.app }}
-            APPVERSION=${{ github.sha }}
+            APPNAME=${{ steps.parse.outputs.app }}
+            APPVERSION=${{ steps.parse.outputs.version }}
 
   build-darwin:
-    name: Darwin binary (${{ matrix.app }})
+    name: Darwin binary
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [acme, ddns]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect changed paths
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            acme:
-              - 'apps/acme/**'
-            ddns:
-              - 'apps/ddns/**'
-              - 'config/**'
-            workflow:
-              - '.github/workflows/docker-publish.yml'
-
-      - name: Decide if this app should build
-        id: should
+      - name: Parse tag
+        id: parse
         run: |
-          APP="${{ matrix.app }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.filter.outputs.workflow }}" = "true" ]; then
-            echo "build=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "$APP" = "acme" ] && [ "${{ steps.filter.outputs.acme }}" = "true" ]; then
-            echo "build=true" >> "$GITHUB_OUTPUT"
-          elif [ "$APP" = "ddns" ] && [ "${{ steps.filter.outputs.ddns }}" = "true" ]; then
-            echo "build=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
           else
-            echo "build=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping ${APP}: no relevant path changes"
+            TAG="${GITHUB_REF_NAME}"
           fi
+          APP="${TAG%%-*}"
+          VERSION="${TAG#*-}"
+          if [ "$APP" != "ddns" ] && [ "$APP" != "acme" ]; then
+            echo "Tag '$TAG' no corresponde a una app valida (ddns|acme)"; exit 1
+          fi
+          if [ "$VERSION" = "$TAG" ] || [ -z "$VERSION" ]; then
+            echo "Tag '$TAG' no tiene el formato <app>-v<version>"; exit 1
+          fi
+          echo "app=$APP" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
-        if: steps.should.outputs.build == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version-file: apps/${{ matrix.app }}/go.mod
-          cache-dependency-path: apps/${{ matrix.app }}/go.sum
+          go-version-file: apps/${{ steps.parse.outputs.app }}/go.mod
+          cache-dependency-path: apps/${{ steps.parse.outputs.app }}/go.sum
 
       - name: Build darwin/arm64 binary
-        if: steps.should.outputs.build == 'true'
-        working-directory: apps/${{ matrix.app }}
+        working-directory: apps/${{ steps.parse.outputs.app }}
         run: |
           CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
-            go build -o "${{ matrix.app }}-darwin-arm64" ./cmd/main.go
+            go build -o "${{ steps.parse.outputs.app }}-darwin-arm64" ./cmd/main.go
 
       - name: Upload darwin/arm64 binary
-        if: steps.should.outputs.build == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.app }}-darwin-arm64
-          path: apps/${{ matrix.app }}/${{ matrix.app }}-darwin-arm64
+          name: ${{ steps.parse.outputs.app }}-${{ steps.parse.outputs.version }}-darwin-arm64
+          path: apps/${{ steps.parse.outputs.app }}/${{ steps.parse.outputs.app }}-darwin-arm64
           if-no-files-found: error

@@ -1,0 +1,19 @@
+ddns:
+  log-level: "info"
+  check-every-seconds: 300
+  process-timeout-seconds: 20
+  aws:
+    - account-name: "example"
+      region: "us-east-1"
+      access-key: "YOUR_AWS_ACCESS_KEY"
+      secret-key: "YOUR_AWS_SECRET_KEY"
+      zones:
+        - id: "Z0123456789ABCDEF"
+          name: "example.net zone."
+          records:
+            - fqdn: "vpn.example.net."
+              record-type: A
+              record-ttl: 3600
+            - fqdn: "localhost.example.net."
+              record-type: A
+              record-ttl: 3600

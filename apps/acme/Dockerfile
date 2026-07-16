@@ -1,4 +1,4 @@
-# Etapa de compilación
+# Build stage
 FROM golang:1.26-alpine AS builder
 
 ARG TARGETOS
@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 \
     GOARCH="${GOARCH:-$TARGETARCH}" \
     go build -o ${APPNAME} ./cmd/main.go
 
-# Etapa final (mínima)
+# Final stage (minimal)
 FROM scratch
 ARG APPNAME
 COPY --from=builder /app/${APPNAME} /${APPNAME}
