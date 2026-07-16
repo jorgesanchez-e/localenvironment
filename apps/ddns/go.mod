@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.26
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.63.5
-	github.com/jorgesanchez-e/localenvironment/config v0.0.0-20260704045301-4f59c19e7664
+	github.com/jorgesanchez-e/localenvironment/config v0.0.0-20260714234404-2b4ea65272a9
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 )
