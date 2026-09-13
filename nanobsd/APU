@@ -1,0 +1,235 @@
+#
+# APU -- FreeBSD/amd64 kernel for PC Engines APU2 / APU3 series
+#
+# Targets onboard hardware described in:
+#   https://www.pcengines.ch/pdf/apu3.pdf
+#   https://www.pcengines.ch/apu2.htm
+#
+# Onboard: AMD GX-412TC, 3x Intel i210/i211 GigE, AHCI SATA/mSATA,
+#          SDHCI SD, USB 2/3, UART console (CoreBoot), ACPI/PCI.
+# No PS/2 keyboard controller, no onboard WiFi/audio/NVMe/RAID.
+#
+# Tuned for NanoBSD / firewall / VNET jails (pf, ALTQ, RCTL, bridge).
+# Expansion WiFi/LTE miniPCIe cards: load as modules (kldload).
+#
+# See also: sys/conf/NOTES and sys/amd64/conf/NOTES
+#
+
+cpu		HAMMER
+ident		APU
+
+#makeoptions	DEBUG=-g		# gdb(1) debug symbols
+makeoptions	WITH_CTF=1		# DTrace CTF
+
+options 	SCHED_ULE		# ULE scheduler
+options 	PREEMPTION		# Kernel thread preemption
+options 	SMP			# Quad-core GX-412TC
+options 	VIMAGE			# VNET / jail network stacks
+
+options 	INET			# IPv4
+options 	INET6			# IPv6
+options 	IPSEC_SUPPORT		# Allow kldload of ipsec
+options 	ROUTE_MPATH		# Multipath routing
+options 	FIB_ALGO		# Modular fib lookups
+options 	TCP_BLACKBOX		# TCP event logging
+options 	TCP_HHOOK		# hhook(9) for TCP
+options 	TCP_RFC7413		# TCP Fast Open
+options 	SCTP_SUPPORT		# Allow kldload of SCTP
+
+options 	FFS			# UFS/FFS (NanoBSD partitions)
+options 	SOFTUPDATES
+options 	UFS_ACL
+options 	UFS_DIRHASH
+options 	UFS_GJOURNAL
+options 	QUOTA
+options 	MD_ROOT			# md(4) as root (NanoBSD-friendly)
+options 	MSDOSFS			# FAT on USB sticks
+options 	PROCFS
+options 	PSEUDOFS
+options 	TMPFS
+options 	GEOM_LABEL
+options 	GEOM_RAID		# Soft RAID if desired
+#options 	NFSCL			# Uncomment if you need NFS client
+#options 	NFSD
+#options 	NFSLOCKD
+#options 	NFS_ROOT
+#options 	CD9660			# ISO9660 (optical media)
+
+options 	COMPAT_FREEBSD32	# i386 binaries
+options 	COMPAT_FREEBSD11
+options 	COMPAT_FREEBSD12
+options 	COMPAT_FREEBSD13
+#options 	COMPAT_FREEBSD14
+
+options 	SCSI_DELAY=5000
+options 	KTRACE
+options 	STACK
+options 	SYSVSHM
+options 	SYSVMSG
+options 	SYSVSEM
+options 	_KPOSIX_PRIORITY_SCHEDULING
+options 	PRINTF_BUFR_SIZE=128
+options 	KBD_INSTALL_CDEV
+options 	HWPMC_HOOKS
+options 	AUDIT
+options 	CAPABILITY_MODE
+options 	CAPABILITIES
+options 	MAC
+options 	KDTRACE_FRAME
+options 	KDTRACE_HOOKS
+options 	DDB_CTF
+options 	INCLUDE_CONFIG_FILE
+options 	RACCT			# Jail / process resource accounting
+options 	RACCT_DEFAULT_TO_DISABLED
+options 	RCTL			# Hierarchical resource limits
+
+# Kernel dump features
+options 	EKCD
+options 	GZIO
+options 	ZSTDIO
+options 	DEBUGNET
+options 	NETDUMP
+
+# ALTQ (useful with pf on a router/firewall)
+options 	ALTQ
+options 	ALTQ_CBQ
+options 	ALTQ_RED
+options 	ALTQ_RIO
+options 	ALTQ_CODEL
+options 	ALTQ_HFSC
+options 	ALTQ_FAIRQ
+options 	ALTQ_CDNR
+options 	ALTQ_PRIQ
+options 	ALTQ_NOPCC		# Safer if TSC varies with cpufreq
+
+# Netgraph (keep common router nodes; load exotic ones as modules)
+options 	NETGRAPH
+options 	NETGRAPH_BPF
+options 	NETGRAPH_BRIDGE
+options 	NETGRAPH_ETHER
+options 	NETGRAPH_IFACE
+options 	NETGRAPH_EIFACE
+options 	NETGRAPH_GIF
+options 	NETGRAPH_HOLE
+options 	NETGRAPH_KSOCKET
+options 	NETGRAPH_L2TP
+options 	NETGRAPH_NAT
+options 	NETGRAPH_ONE2MANY
+options 	NETGRAPH_PIPE
+options 	NETGRAPH_PPP
+options 	NETGRAPH_PPPOE
+options 	NETGRAPH_SOCKET
+options 	NETGRAPH_TAG
+options 	NETGRAPH_TCPMSS
+options 	NETGRAPH_TEE
+options 	NETGRAPH_VLAN
+options 	NETGRAPH_VJC
+#options 	NETGRAPH_IPFW
+#options 	NETGRAPH_NETFLOW
+
+options 	MROUTING		# Multicast routing
+options 	PPS_SYNC		# PPS for ntpd (optional but cheap)
+
+# CPU frequency control (AMD G-series)
+device		cpufreq
+
+# Platform / bus
+device		acpi
+device		smbios
+device		pci
+#options 	IOMMU			# Uncomment if you use VT-d/IOMMU features
+options 	COMPAT_LINUXKPI		# Needed by some crypto / mlx paths if loaded
+
+# --- Storage (APU: AHCI SATA/mSATA + SD + USB mass storage) ---
+device		ahci			# SATA / mSATA
+device		scbus
+device		da			# Disks
+device		pass
+
+# SD card (AMD SoC SDHCI — use sdhci per PC Engines docs)
+device		mmc
+device		mmcsd
+device		sdhci
+
+# Memory disk
+device		md
+
+# --- Console / serial (primary I/O on APU; no PS/2 KBC) ---
+device		uart			# COM1 DB9 + extra UARTs
+# No atkbdc/atkbd/psm: APU has no keyboard controller.
+
+# Optional framebuffer console if CoreBoot provides one
+device		vt
+device		vt_vga
+device		vt_efifb
+device		vt_vbefb
+
+device		puc			# Multi-channel UARTs (NCT5104D extras)
+
+# --- Network: onboard Intel i210AT / i211AT ---
+device		iflib
+device		igb			# Intel I210 / I211 (required for APU GigE)
+device		miibus
+device		ether
+device		vlan
+device		tuntap
+device		gif
+device		gre
+device		stf
+device		vxlan
+device		epair
+device		bpf			# Required for DHCP / tcpdump / pf logging
+device		loop
+device		if_bridge
+device		carp
+device		enc			# IPsec interface
+device		lagg
+device		wg			# WireGuard
+device		netmap
+device		me
+options 	XBONEHACK
+
+# 802.11 framework only — load ath/iwn/… modules for miniPCIe WiFi cards
+device		wlan
+device		wlan_wep
+device		wlan_ccmp
+device		wlan_tkip
+device		wlan_amrr
+#options 	IEEE80211_DEBUG
+#options 	IEEE80211_SUPPORT_MESH
+
+# Packet filter
+device		pf
+device		pflog
+device		pfsync
+
+# Crypto (GX-412TC has AES-NI)
+device		crypto
+device		cryptodev
+device		aesni
+device		firmware
+device		xz
+#device		rdrand_rng		# Not generally available on Jaguar
+
+# --- USB (internal USB2 + external USB3 on APU) ---
+device		uhci
+device		ohci
+device		ehci
+device		xhci
+device		usb
+device		umass			# USB disks / install media
+device		usbhid
+device		hkbd
+device		ukbd
+
+# HID / evdev (USB keyboards if attached)
+options 	EVDEV_SUPPORT
+device		evdev
+device		uinput
+device		hid
+device		hidbus
+
+# EFI runtime (harmless if firmware exposes it)
+options 	EFIRT
+#device		efidev
+#device		efirtc
