@@ -1,0 +1,38 @@
+#!/bin/sh 
+set -eu
+
+if [ -z "${DOCKER_TAG}" ]; then
+    echo "DOCKER_TAG must be set"
+    exit 1
+fi
+
+if [ -z "${GOOS}" ]; then
+    echo "GOOS must be set"
+    exit 1
+fi
+
+if [ -z "${GOARCH}" ]; then
+    echo "GOARCH must be set"
+    exit 1
+fi
+
+if [ -z "${APPVERSION}" ]; then
+    echo "APPVERSION must be set"
+    exit 1
+fi
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${REPO}" ]; then
+    echo "REPO must be set"
+    exit 1
+fi
+
+docker build --build-arg GOOS=${GOOS} \
+    --build-arg GOARCH=${GOARCH} \
+    --build-arg APPVERSION=${APPVERSION} \
+    --build-arg APPNAME=${APPNAME} \
+    -t ${REPO}/${GOOS}-${GOARCH}/${APPNAME}:${APPVERSION} .

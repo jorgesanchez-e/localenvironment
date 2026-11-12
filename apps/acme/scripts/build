@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${ROOT_DIR}" ]; then
+    echo "ROOT_DIR must be set"
+    exit 1
+fi
+
+if [ ! -d "${ROOT_DIR}/build" ]; then
+    echo "creating dir ${ROOT_DIR}/build"
+    mkdir -p "${ROOT_DIR}/build"
+fi
+
+if [ -z "${APPVERSION}" ]; then
+    echo "APPVERSION is not set, setting it to unknown"
+    APPVERSION="UNKNOWN"
+fi
+
+if [ -z "${APPNAME}" ]; then
+    echo "APPNAME must be set"
+    exit 1
+fi
+
+if [ -z "${GOARCH}" ]; then
+    echo "Using default GOARCH"
+    GOARCH="$(go env GOARCH)"
+else
+    echo "Using GOARCH=${GOARCH}"
+fi
+
+if [ -z "${GOOS}" ]; then
+    echo "Using default GOOS"
+    GOOS="$(go env GOOS)"
+else
+    echo "Using GOOS=${GOOS}"
+fi
+
+export CGO_ENABLED=0
+
+bin="${ROOT_DIR}/build/${APPNAME}-${GOOS}-${GOARCH}-${APPVERSION}.bin"
+echo "Go building app"
+go build -o "${bin}" "${ROOT_DIR}/apps/${APPNAME}/cmd/main.go"
+echo "Successfully built, exiting build script"
